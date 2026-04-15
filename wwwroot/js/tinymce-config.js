@@ -4,6 +4,7 @@ export function initializeTinyMce({
     onImageUploadStatusChange,
     uploadImage
 }) {
+    // Keep editor configuration isolated so the harness can focus on page behavior.
     tinymce.init({
         selector: "#editor",
         license_key: "gpl",
@@ -21,6 +22,7 @@ export function initializeTinyMce({
         autoresize_overflow_padding: 16,
         file_picker_types: "image",
         images_upload_handler: async (blobInfo, progress) => {
+            // Toolbar-driven image inserts are intentional, so they upload immediately.
             onImageUploadStatusChange("Uploading image...", "working");
 
             try {
@@ -37,6 +39,7 @@ export function initializeTinyMce({
                 return;
             }
 
+            // Use the same upload path whether the user picks a file or uses TinyMCE's upload handler.
             const input = document.createElement("input");
             input.type = "file";
             input.accept = "image/png,image/jpeg,image/gif,image/webp";
@@ -67,9 +70,11 @@ export function initializeTinyMce({
         },
         setup: (editor) => {
             editor.on("init", () => {
+                // Let the harness restore draft state and sync its side panel once the editor exists.
                 onEditorReady(editor);
             });
 
+            // Keep the side-panel HTML output in sync with normal edits and programmatic content updates.
             editor.on("change input undo redo setcontent", () => {
                 onEditorContentChange(editor);
             });

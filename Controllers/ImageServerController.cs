@@ -30,17 +30,20 @@ public sealed class ImageServerController : ControllerBase
         try
         {
             var storedImage = await _imageStorageService.SaveAsync(file, cancellationToken);
+            // Always return the controller route so storage stays behind the API boundary.
             var imageUrl = $"{Request.Scheme}://{Request.Host}/api/images/{storedImage.FileName}";
 
             return Ok(new ImageUploadResponse(imageUrl, storedImage.FileName, storedImage.ContentType, storedImage.Size));
         }
         catch (InvalidOperationException exception)
         {
+            // Validation failures are expected user errors, so they stay in the 400 range.
             _logger.LogWarning(exception, "Image upload rejected.");
             return BadRequest(new { error = "The uploaded image was rejected." });
         }
         catch (Exception exception)
         {
+            // Unexpected provider/storage failures are logged, but the client gets a generic error.
             _logger.LogError(exception, "Unexpected image upload failure.");
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "The image upload could not be completed." });
         }
@@ -49,6 +52,7 @@ public sealed class ImageServerController : ControllerBase
     [HttpGet("{fileName}")]
     public async Task<IActionResult> GetAsync(string fileName, CancellationToken cancellationToken)
     {
+        // Images are served through the controller rather than exposing the storage folder directly.
         var image = await _imageStorageService.GetAsync(fileName, cancellationToken);
 
         if (image is null)
@@ -62,7 +66,9 @@ public sealed class ImageServerController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ImageListItemResponse>>> ListAsync(CancellationToken cancellationToken)
     {
+        // The harness uses this lightweight listing endpoint to populate its uploaded-images gallery.
         var images = await _imageStorageService.ListAsync(Request, cancellationToken);
+        // Return just enough metadata for preview links without exposing storage-specific details.
         var response = images
             .Select(image => new ImageListItemResponse(image.FileName, image.Url, image.ContentType, image.CreatedUtc))
             .ToList();

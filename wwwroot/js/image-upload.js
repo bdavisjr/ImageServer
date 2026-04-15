@@ -1,4 +1,5 @@
 function getImageExtension(contentType) {
+    // Keep imported filenames aligned with their detected image type before upload.
     switch (contentType) {
         case "image/png":
             return ".png";
@@ -13,6 +14,7 @@ function getImageExtension(contentType) {
 
 export function createImageUploadService({ onUploadComplete }) {
     async function uploadImage(blobInfo, progress) {
+        // TinyMCE hands us a blob-like wrapper; the API expects a normal multipart file field.
         const formData = new FormData();
         formData.append("file", blobInfo.blob(), blobInfo.filename());
 
@@ -55,6 +57,7 @@ export function createImageUploadService({ onUploadComplete }) {
     }
 
     async function uploadBlob(blob, filename) {
+        // Reuse the same API path for imported editor images and direct picker uploads.
         return await uploadImage(
             {
                 blob: () => blob,
@@ -65,6 +68,7 @@ export function createImageUploadService({ onUploadComplete }) {
     }
 
     function isStoredImageUrl(src) {
+        // Once an image already points at this API, it does not need to be imported again on save.
         return src.startsWith("/api/images/") || src.startsWith(`${window.location.origin}/api/images/`);
     }
 
@@ -77,10 +81,12 @@ export function createImageUploadService({ onUploadComplete }) {
             return true;
         }
 
+        // Sample assets live under /img until the editor content is normalized and saved.
         return src.startsWith("/img/") || src.startsWith(`${window.location.origin}/img/`);
     }
 
     async function importImageSource(src, index) {
+        // Re-import local sample images and pasted data URLs into the image server on save.
         const response = await fetch(src);
         if (!response.ok) {
             throw new Error("The image source could not be loaded for import.");
@@ -92,6 +98,7 @@ export function createImageUploadService({ onUploadComplete }) {
     }
 
     async function normalizeEditorContent(html) {
+        // Save is the persistence boundary: convert temporary image sources into stored URLs here.
         const parser = new DOMParser();
         const documentFragment = parser.parseFromString(html, "text/html");
         const images = Array.from(documentFragment.querySelectorAll("img"));
@@ -110,11 +117,13 @@ export function createImageUploadService({ onUploadComplete }) {
     }
 
     async function listImages() {
+        // The harness gallery reads from the same API route that serves stored images.
         const response = await fetch("/api/images");
         if (!response.ok) {
             throw new Error("Uploaded images could not be loaded.");
         }
 
+        // The API returns a light list model that is already shaped for the gallery.
         return await response.json();
     }
 

@@ -4,6 +4,7 @@ const defaultSampleImageUrl = "/img/Blog_FlyingGirl.jpg";
 const emptyUploadValue = "No uploads yet";
 
 function getEditor() {
+    // TinyMCE owns the textarea after init, so interactions go through its editor instance.
     return tinymce.get("editor");
 }
 
@@ -38,10 +39,12 @@ export function initializeHarness({ elements, imageUploadService, initializeTiny
     }
 
     function syncHtmlOutput(editor) {
+        // Show the current editor markup in the side panel for quick inspection during testing.
         elements.htmlOutput.value = editor.getContent();
     }
 
     function getHeaderImageUrl() {
+        // Keep the header test image stable so copy/paste testing stays predictable.
         return defaultHeaderImageUrl;
     }
 
@@ -59,6 +62,7 @@ export function initializeHarness({ elements, imageUploadService, initializeTiny
     }
 
     function syncHeaderImage() {
+        // The placeholder is only useful before the test image is available.
         elements.headerImage.src = getHeaderImageUrl();
         elements.headerImage.hidden = false;
         elements.headerImagePlaceholder.hidden = true;
@@ -92,6 +96,7 @@ export function initializeHarness({ elements, imageUploadService, initializeTiny
     }
 
     function restoreDraft(editor) {
+        // Drafts are stored client-side so the harness can survive refreshes without a database.
         const savedDraft = window.localStorage.getItem(savedDraftStorageKey);
         if (!savedDraft) {
             return false;
@@ -110,6 +115,7 @@ export function initializeHarness({ elements, imageUploadService, initializeTiny
 
         setStatus("Saving draft...", "working");
 
+        // Replace pasted/base64 and local sample images with stored server URLs before saving.
         const normalizedContent = await imageUploadService.normalizeEditorContent(editor.getContent());
         editor.setContent(normalizedContent);
         window.localStorage.setItem(savedDraftStorageKey, normalizedContent);
@@ -124,6 +130,7 @@ export function initializeHarness({ elements, imageUploadService, initializeTiny
             return;
         }
 
+        // Append a realistic content block instead of replacing whatever the editor already has.
         editor.insertContent(`
             <article class="sample-card">
                 <img src="${getSampleImageSrc()}" alt="Sample card image" class="sample-card-image">
@@ -144,6 +151,7 @@ export function initializeHarness({ elements, imageUploadService, initializeTiny
     }
 
     async function copyTestImage() {
+        // Prefer the latest uploaded image when available so copy/paste can exercise stored assets too.
         const sourceImageUrl = hasUploadedImage() ? getLastUploadedUrl() : defaultHeaderImageUrl;
 
         try {
@@ -165,10 +173,12 @@ export function initializeHarness({ elements, imageUploadService, initializeTiny
         window.localStorage.removeItem(savedDraftStorageKey);
         elements.lastUploadUrl.value = emptyUploadValue;
         syncHeaderImage();
+        renderEmptyGallery("No uploaded images yet.");
         setStatus("Editor cleared", "idle");
     }
 
     function wireEvents() {
+        // Keep button wiring here so the module entry point only has to call start().
         elements.insertSampleButton.addEventListener("click", insertSampleContent);
         elements.copyTestImageButton.addEventListener("click", () => {
             void copyTestImage();
@@ -198,6 +208,7 @@ export function initializeHarness({ elements, imageUploadService, initializeTiny
             onEditorContentChange: syncHtmlOutput,
             onImageUploadStatusChange: setStatus,
             uploadImage: async (blobInfo, progress) => {
+                // Refresh the gallery after explicit uploads so the harness reflects stored state right away.
                 const location = await imageUploadService.uploadImage(blobInfo, progress);
                 syncHeaderImage();
                 await loadUploadedImages();

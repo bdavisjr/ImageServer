@@ -150,9 +150,54 @@ After configuration:
 - [Options/ImageStorageOptions.cs](/Volumes/SourceCode/Code/Projects/ImageServer/Options/ImageStorageOptions.cs:1): storage settings
 - [Options/CloudflareImagesOptions.cs](/Volumes/SourceCode/Code/Projects/ImageServer/Options/CloudflareImagesOptions.cs:1): Cloudflare Images settings
 - [Models/ImageUploadResponse.cs](/Volumes/SourceCode/Code/Projects/ImageServer/Models/ImageUploadResponse.cs:1): upload response payload
+- [Models/ImageListItemResponse.cs](/Volumes/SourceCode/Code/Projects/ImageServer/Models/ImageListItemResponse.cs:1): uploaded-images gallery payload
 - [wwwroot/index.html](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/index.html:1): TinyMCE harness markup
-- [wwwroot/app.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/app.js:1): TinyMCE initialization and upload handler
+- [wwwroot/app.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/app.js:1): front-end entry point that wires the harness together
+- [wwwroot/js/harness.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/js/harness.js:1): harness-specific UI behavior, draft save flow, and gallery updates
+- [wwwroot/js/tinymce-config.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/js/tinymce-config.js:1): TinyMCE configuration and setup callbacks
+- [wwwroot/js/image-upload.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/js/image-upload.js:1): browser-side upload, image import, and gallery API calls
 - [wwwroot/styles.css](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/styles.css:1): harness styling
+- [wwwroot/editor-content.css](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/editor-content.css:1): styles that load inside the TinyMCE editor iframe
+
+## Front-end developer notes
+
+The harness JavaScript is intentionally split into a few small modules instead of one large file:
+
+- [wwwroot/app.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/app.js:1) only gathers DOM elements and composes the page
+- [wwwroot/js/tinymce-config.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/js/tinymce-config.js:1) owns TinyMCE plugins, toolbar options, picker behavior, and editor lifecycle hooks
+- [wwwroot/js/image-upload.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/js/image-upload.js:1) owns upload requests, uploaded-image listing, and content normalization during save
+- [wwwroot/js/harness.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/js/harness.js:1) owns buttons, status updates, draft restore/save, sample insertion, and the uploaded-images gallery
+
+This makes it easier to change TinyMCE behavior without touching the harness layout code, and easier to change image API behavior without digging through editor setup.
+
+### Draft and image lifecycle
+
+The harness intentionally treats paste and save differently:
+
+- Toolbar image uploads are uploaded immediately to `POST /api/images`
+- Pasted `data:image/...` images are allowed to exist temporarily inside the editor while the user is drafting
+- Local sample images from `/img/...` are also allowed temporarily inside the editor
+- `Save draft` is the persistence boundary for pasted or local sample images
+- During save, the harness scans editor HTML, uploads any temporary images to the image server, rewrites those `src` values to `/api/images/...`, and then stores the normalized HTML in `localStorage`
+
+This helps avoid creating lots of stored images for abandoned drafts while still making paste behavior feel immediate in the editor.
+
+### Uploaded images gallery
+
+The side-panel gallery is populated from `GET /api/images`.
+
+- Local storage mode returns the most recent stored images from `App_Data/Images`
+- The harness uses that response to render clickable thumbnails in the right-side panel
+- Cloudflare image listing is not implemented yet, so the gallery is currently local-storage focused
+
+### Editor content styling
+
+The visible page styling and the editor content styling are separate on purpose:
+
+- [wwwroot/styles.css](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/styles.css:1) styles the harness page around TinyMCE
+- [wwwroot/editor-content.css](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/editor-content.css:1) styles content inside the TinyMCE iframe
+
+If a content block looks right on the page shell but not inside the editor, the editor stylesheet is the first place to check.
 
 ## API
 
@@ -190,6 +235,23 @@ This is the only supported read path for stored images.
 
 When Cloudflare Images is enabled, the controller still remains the only public read path for this app. The backend fetches the image from Cloudflare and streams it back to the client.
 
+### `GET /api/images`
+
+Returns a lightweight list of stored images for the harness gallery.
+
+Successful response shape:
+
+```json
+[
+  {
+    "fileName": "example-file.jpg",
+    "url": "http://localhost:5254/api/images/example-file.jpg",
+    "contentType": "image/jpeg",
+    "createdUtc": "2026-04-15T14:30:00+00:00"
+  }
+]
+```
+
 ## Running locally
 
 Build:
@@ -216,3 +278,4 @@ The launch profile is defined in [Properties/launchSettings.json]
 - The app deliberately does not expose the image folder as a static file directory
 - Image retrieval should stay behind the controller so auth, logging, transformations, or access checks can be added later in one place
 - Cloudflare Images upload uses the official account upload endpoint and retrieves bytes from an Images delivery URL built from `AccountHash`, image ID, and variant name
+- The front-end entry script is an ES module, so [wwwroot/index.html](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/index.html:90) loads [wwwroot/app.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/app.js:1) with `type="module"`
