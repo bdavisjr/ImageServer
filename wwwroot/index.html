@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Image Server TinyMCE Harness</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
+</head>
+<body>
+    <main class="page-shell">
+        <section class="hero">
+            <p class="eyebrow">Demo Harness</p>
+            <h1>TinyMCE image upload test bed</h1>
+            <p class="lede">
+                This page uploads images into the local image server and inserts the returned image URL directly into TinyMCE.
+            </p>
+            <div class="hero-actions">
+                <button id="insert-sample" type="button">Insert sample content</button>
+                <button id="clear-editor" type="button" class="button-secondary">Clear editor</button>
+            </div>
+        </section>
+
+        <section class="workspace">
+            <div class="panel panel-editor">
+                <div class="panel-header">
+                    <h2>Editor</h2>
+                    <span id="status-pill" class="status-pill">Idle</span>
+                </div>
+                <textarea id="editor">
+<p>Upload an image with the TinyMCE toolbar or paste one into the editor.</p>
+                </textarea>
+            </div>
+
+            <aside class="panel panel-side">
+                <div class="panel-header">
+                    <h2>Harness details</h2>
+                </div>
+
+                <dl class="info-list">
+                    <div>
+                        <dt>Upload endpoint</dt>
+                        <dd><code>POST /api/images</code></dd>
+                    </div>
+                    <div>
+                        <dt>Image path</dt>
+                        <dd><code>/api/images/&lt;file&gt;</code></dd>
+                    </div>
+                    <div>
+                        <dt>Accepted types</dt>
+                        <dd>JPEG, PNG, GIF, WebP</dd>
+                    </div>
+                </dl>
+
+                <label class="field" for="last-upload-url">
+                    <span>Last uploaded image URL</span>
+                    <input id="last-upload-url" type="text" readonly value="No uploads yet">
+                </label>
+
+                <label class="field" for="html-output">
+                    <span>Current HTML</span>
+                    <textarea id="html-output" readonly spellcheck="false"></textarea>
+                </label>
+            </aside>
+        </section>
+    </main>
+
+    <script src="/app.js"></script>
+</body>
+</html>
