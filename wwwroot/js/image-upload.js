@@ -81,6 +81,10 @@ export function createImageUploadService({ onUploadComplete }) {
             return true;
         }
 
+        if (src.startsWith("blob:")) {
+            return true;
+        }
+
         // Sample assets live under /img until the editor content is normalized and saved.
         return src.startsWith("/img/") || src.startsWith(`${window.location.origin}/img/`);
     }

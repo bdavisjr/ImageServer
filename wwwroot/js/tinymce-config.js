@@ -1,3 +1,12 @@
+function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.addEventListener("load", () => resolve(reader.result));
+        reader.addEventListener("error", () => reject(new Error("The dropped image could not be read.")));
+        reader.readAsDataURL(file);
+    });
+}
+
 export function initializeTinyMce({
     onEditorReady,
     onEditorContentChange,
@@ -72,6 +81,34 @@ export function initializeTinyMce({
             editor.on("init", () => {
                 // Let the harness restore draft state and sync its side panel once the editor exists.
                 onEditorReady(editor);
+            });
+
+            editor.on("drop", (event) => {
+                const imageFiles = Array.from(event.dataTransfer?.files ?? [])
+                    .filter((file) => file.type.startsWith("image/"));
+
+                if (!imageFiles.length) {
+                    return;
+                }
+
+                // Treat drag/drop like paste: show the image now, but defer server upload until save.
+                event.preventDefault();
+                event.stopPropagation();
+
+                void (async () => {
+                    editor.focus();
+
+                    for (const file of imageFiles) {
+                        const dataUrl = await readFileAsDataUrl(file);
+                        const altText = file.name.replace(/"/g, "&quot;");
+                        editor.insertContent(`<p><img src="${dataUrl}" alt="${altText}"></p>`);
+                    }
+
+                    onEditorContentChange(editor);
+                })().catch(() => {
+                    onImageUploadStatusChange("Drop failed", "error");
+                    window.alert("The dropped image could not be added to the editor.");
+                });
             });
 
             // Keep the side-panel HTML output in sync with normal edits and programmatic content updates.
