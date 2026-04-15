@@ -5,19 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Image Server TinyMCE Harness</title>
     <link rel="stylesheet" href="/styles.css">
-    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
+    <script src="/lib/tinymce/tinymce.min.js"></script>
 </head>
 <body>
     <main class="page-shell">
         <section class="hero">
-            <p class="eyebrow">Demo Harness</p>
-            <h1>TinyMCE image upload test bed</h1>
-            <p class="lede">
-                This page uploads images into the local image server and inserts the returned image URL directly into TinyMCE.
-            </p>
-            <div class="hero-actions">
-                <button id="insert-sample" type="button">Insert sample content</button>
-                <button id="clear-editor" type="button" class="button-secondary">Clear editor</button>
+            <div class="hero-grid">
+                <div class="hero-copy">
+                    <p class="eyebrow">Demo Harness</p>
+                    <h1>TinyMCE image upload test bed</h1>
+                    <p class="lede">
+                        This page uploads images into the local image server and inserts the returned image URL directly into TinyMCE.
+                    </p>
+                    <div class="hero-actions">
+                        <button id="insert-sample" type="button">Insert sample content</button>
+                        <button id="copy-test-image" type="button">Copy test image</button>
+                        <button id="save-editor" type="button">Save draft</button>
+                        <button id="clear-editor" type="button" class="button-secondary">Clear editor</button>
+                    </div>
+                </div>
+                <div class="hero-preview">
+                    <p class="hero-preview-label">Header image for copy/paste testing</p>
+                    <div id="header-image-shell" class="hero-preview-frame">
+                        <img id="header-image" class="hero-preview-image" alt="Last uploaded preview">
+                        <div id="header-image-placeholder" class="hero-preview-placeholder">
+                            Upload an image and it will appear here so you can copy it and paste it into the editor.
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -61,10 +76,17 @@
                     <span>Current HTML</span>
                     <textarea id="html-output" readonly spellcheck="false"></textarea>
                 </label>
+
+                <section class="upload-gallery">
+                    <div class="panel-header">
+                        <h2>Uploaded images</h2>
+                    </div>
+                    <div id="uploaded-images" class="gallery-grid"></div>
+                </section>
             </aside>
         </section>
     </main>
 
-    <script src="/app.js"></script>
+    <script type="module" src="/app.js"></script>
 </body>
 </html>

@@ -5,14 +5,6 @@ namespace ImageServer.Services;
 
 public sealed class LocalImageStorageService : IImageStorageService
 {
-    private static readonly Dictionary<string, string> ExtensionsByContentType = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["image/jpeg"] = ".jpg",
-        ["image/png"] = ".png",
-        ["image/gif"] = ".gif",
-        ["image/webp"] = ".webp"
-    };
-
     private readonly ImageStorageOptions _options;
     private readonly string _rootPath;
 
@@ -25,9 +17,9 @@ public sealed class LocalImageStorageService : IImageStorageService
 
     public async Task<StoredImageResult> SaveAsync(IFormFile file, CancellationToken cancellationToken)
     {
-        Validate(file);
+        await ImageValidation.ValidateAsync(file, _options.MaxUploadBytes, _options.AllowedContentTypes, cancellationToken);
 
-        var extension = ExtensionsByContentType[file.ContentType];
+        var extension = ImageValidation.GetExtensionForContentType(file.ContentType);
         var fileName = $"{Guid.CreateVersion7():N}{extension}";
         var fullPath = Path.Combine(_rootPath, fileName);
 
@@ -55,7 +47,7 @@ public sealed class LocalImageStorageService : IImageStorageService
         }
 
         var extension = Path.GetExtension(safeFileName);
-        var contentType = ExtensionsByContentType.FirstOrDefault(x => x.Value.Equals(extension, StringComparison.OrdinalIgnoreCase)).Key;
+        var contentType = ImageValidation.GetContentTypeForExtension(extension);
 
         if (contentType is null)
         {
@@ -66,21 +58,32 @@ public sealed class LocalImageStorageService : IImageStorageService
         return Task.FromResult<StoredImageFile?>(new StoredImageFile(safeFileName, contentType, stream));
     }
 
-    private void Validate(IFormFile file)
+    public Task<IReadOnlyList<StoredImageListItem>> ListAsync(HttpRequest request, CancellationToken cancellationToken)
     {
-        if (file.Length <= 0)
-        {
-            throw new InvalidOperationException("The uploaded file is empty.");
-        }
+        cancellationToken.ThrowIfCancellationRequested();
 
-        if (file.Length > _options.MaxUploadBytes)
-        {
-            throw new InvalidOperationException($"The uploaded file exceeds the {_options.MaxUploadBytes} byte limit.");
-        }
+        var items = Directory.EnumerateFiles(_rootPath)
+            .Select(path =>
+            {
+                var fileName = Path.GetFileName(path);
+                var extension = Path.GetExtension(fileName);
+                var contentType = ImageValidation.GetContentTypeForExtension(extension);
 
-        if (!_options.AllowedContentTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException($"Content type '{file.ContentType}' is not allowed.");
-        }
+                if (contentType is null)
+                {
+                    return null;
+                }
+
+                var fileInfo = new FileInfo(path);
+                var url = $"{request.Scheme}://{request.Host}/api/images/{fileName}";
+                return new StoredImageListItem(fileName, url, contentType, new DateTimeOffset(fileInfo.CreationTimeUtc, TimeSpan.Zero));
+            })
+            .Where(item => item is not null)
+            .OrderByDescending(item => item!.CreatedUtc)
+            .Take(24)
+            .Cast<StoredImageListItem>()
+            .ToList();
+
+        return Task.FromResult<IReadOnlyList<StoredImageListItem>>(items);
     }
 }

@@ -13,7 +13,17 @@ public class Program
         builder.Services.AddControllers();
         builder.Services.AddOpenApi();
         builder.Services.Configure<ImageStorageOptions>(builder.Configuration.GetSection(ImageStorageOptions.SectionName));
-        builder.Services.AddSingleton<IImageStorageService, LocalImageStorageService>();
+        builder.Services.Configure<CloudflareImagesOptions>(builder.Configuration.GetSection(CloudflareImagesOptions.SectionName));
+        builder.Services.AddHttpClient<CloudflareImageStorageService>();
+        builder.Services.AddSingleton<IImageStorageService>(serviceProvider =>
+        {
+            var imageStorageOptions = serviceProvider.GetRequiredService<IOptions<ImageStorageOptions>>().Value;
+
+            return imageStorageOptions.Provider.Equals("CloudflareImages", StringComparison.OrdinalIgnoreCase)
+                ? serviceProvider.GetRequiredService<CloudflareImageStorageService>()
+                : serviceProvider.GetRequiredService<LocalImageStorageService>();
+        });
+        builder.Services.AddSingleton<LocalImageStorageService>();
 
         var app = builder.Build();
 
@@ -23,8 +33,11 @@ public class Program
         }
 
         var imageStorageOptions = app.Services.GetRequiredService<IOptions<ImageStorageOptions>>().Value;
-        var imageRootPath = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, imageStorageOptions.StoragePath));
-        Directory.CreateDirectory(imageRootPath);
+        if (imageStorageOptions.Provider.Equals("Local", StringComparison.OrdinalIgnoreCase))
+        {
+            var imageRootPath = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, imageStorageOptions.StoragePath));
+            Directory.CreateDirectory(imageRootPath);
+        }
 
         app.UseDefaultFiles();
         app.UseStaticFiles();
