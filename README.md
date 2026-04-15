@@ -11,7 +11,7 @@ Small ASP.NET Core image server with a TinyMCE-based HTML/JavaScript demo harnes
 
 ## Storage providers
 
-The active provider comes from `ImageStorage:Provider` in [appsettings.json](/Volumes/SourceCode/Code/Projects/ImageServer/appsettings.json:1).
+The active provider comes from `ImageStorage:Provider` in `appsettings.json`.
 
 Supported values:
 
@@ -20,16 +20,16 @@ Supported values:
 
 ### Local storage location
 
-The configured storage path is in [appsettings.json](/Volumes/SourceCode/Code/Projects/ImageServer/appsettings.json:1).
+The configured storage path is in `appsettings.json`.
 
 By default:
 
 - `ImageStorage:StoragePath` = `App_Data/Images`
 - That path is resolved relative to the application content root
 - In this repo, that means images are stored under:
-  `/Volumes/SourceCode/Code/Projects/ImageServer/App_Data/Images`
+  `App_Data/Images`
 
-The path is resolved in [Program.cs](/Volumes/SourceCode/Code/Projects/ImageServer/Program.cs:31) and [LocalImageStorageService.cs](/Volumes/SourceCode/Code/Projects/ImageServer/Services/LocalImageStorageService.cs:19).
+The path is resolved in `Program.cs` and `Services/LocalImageStorageService.cs`.
 
 ### Cloudflare Images configuration
 
@@ -41,13 +41,13 @@ To use Cloudflare Images, set:
 - `CloudflareImages:ApiToken`
 - `CloudflareImages:VariantName`
 
-The keys are present in [appsettings.json](/Volumes/SourceCode/Code/Projects/ImageServer/appsettings.json:1) as empty placeholders so developers can see what must be configured.
+The keys are present in `appsettings.json` as empty placeholders so developers can see what must be configured.
 
 For local development, prefer ASP.NET user secrets or a local environment-specific configuration source for real values.
 
 For production, do not store real credentials in `appsettings.json`. Use environment variables, a secret manager, or your hosting platform's secure configuration system.
 
-The implementation is in [CloudflareImageStorageService.cs](/Volumes/SourceCode/Code/Projects/ImageServer/Services/CloudflareImageStorageService.cs:1).
+The implementation is in `Services/CloudflareImageStorageService.cs`.
 
 ### Cloudflare Images setup
 
@@ -99,7 +99,7 @@ Cloudflare also notes that uploaded images are commonly served with a `public` v
 
 #### 4. Configure local development
 
-Keep the placeholders in [appsettings.json](/Volumes/SourceCode/Code/Projects/ImageServer/appsettings.json:1), but put real values in user secrets.
+Keep the placeholders in `appsettings.json`, but put real values in user secrets.
 
 Example:
 
@@ -143,30 +143,30 @@ After configuration:
 
 ## Important files
 
-- [Program.cs](/Volumes/SourceCode/Code/Projects/ImageServer/Program.cs:1): service registration and middleware
-- [Controllers/ImageServerController.cs](/Volumes/SourceCode/Code/Projects/ImageServer/Controllers/ImageServerController.cs:1): upload and image retrieval endpoints
-- [Services/LocalImageStorageService.cs](/Volumes/SourceCode/Code/Projects/ImageServer/Services/LocalImageStorageService.cs:1): local disk storage and validation
-- [Services/CloudflareImageStorageService.cs](/Volumes/SourceCode/Code/Projects/ImageServer/Services/CloudflareImageStorageService.cs:1): Cloudflare Images storage and retrieval
-- [Options/ImageStorageOptions.cs](/Volumes/SourceCode/Code/Projects/ImageServer/Options/ImageStorageOptions.cs:1): storage settings
-- [Options/CloudflareImagesOptions.cs](/Volumes/SourceCode/Code/Projects/ImageServer/Options/CloudflareImagesOptions.cs:1): Cloudflare Images settings
-- [Models/ImageUploadResponse.cs](/Volumes/SourceCode/Code/Projects/ImageServer/Models/ImageUploadResponse.cs:1): upload response payload
-- [Models/ImageListItemResponse.cs](/Volumes/SourceCode/Code/Projects/ImageServer/Models/ImageListItemResponse.cs:1): uploaded-images gallery payload
-- [wwwroot/index.html](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/index.html:1): TinyMCE harness markup
-- [wwwroot/app.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/app.js:1): front-end entry point that wires the harness together
-- [wwwroot/js/harness.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/js/harness.js:1): harness-specific UI behavior, draft save flow, and gallery updates
-- [wwwroot/js/tinymce-config.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/js/tinymce-config.js:1): TinyMCE configuration and setup callbacks
-- [wwwroot/js/image-upload.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/js/image-upload.js:1): browser-side upload, image import, and gallery API calls
-- [wwwroot/styles.css](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/styles.css:1): harness styling
-- [wwwroot/editor-content.css](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/editor-content.css:1): styles that load inside the TinyMCE editor iframe
+- `Program.cs`: service registration and middleware
+- `Controllers/ImageServerController.cs`: upload and image retrieval endpoints
+- `Services/LocalImageStorageService.cs`: local disk storage and validation
+- `Services/CloudflareImageStorageService.cs`: Cloudflare Images storage and retrieval
+- `Options/ImageStorageOptions.cs`: storage settings
+- `Options/CloudflareImagesOptions.cs`: Cloudflare Images settings
+- `Models/ImageUploadResponse.cs`: upload response payload
+- `Models/ImageListItemResponse.cs`: uploaded-images gallery payload
+- `wwwroot/index.html`: TinyMCE harness markup
+- `wwwroot/app.js`: front-end entry point that wires the harness together
+- `wwwroot/js/harness.js`: harness-specific UI behavior, draft save flow, and gallery updates
+- `wwwroot/js/tinymce-config.js`: TinyMCE configuration and setup callbacks
+- `wwwroot/js/image-upload.js`: browser-side upload, image import, and gallery API calls
+- `wwwroot/styles.css`: harness styling
+- `wwwroot/editor-content.css`: styles that load inside the TinyMCE editor iframe
 
 ## Front-end developer notes
 
 The harness JavaScript is intentionally split into a few small modules instead of one large file:
 
-- [wwwroot/app.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/app.js:1) only gathers DOM elements and composes the page
-- [wwwroot/js/tinymce-config.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/js/tinymce-config.js:1) owns TinyMCE plugins, toolbar options, picker behavior, and editor lifecycle hooks
-- [wwwroot/js/image-upload.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/js/image-upload.js:1) owns upload requests, uploaded-image listing, and content normalization during save
-- [wwwroot/js/harness.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/js/harness.js:1) owns buttons, status updates, draft restore/save, sample insertion, and the uploaded-images gallery
+- `wwwroot/app.js` only gathers DOM elements and composes the page
+- `wwwroot/js/tinymce-config.js` owns TinyMCE plugins, toolbar options, picker behavior, and editor lifecycle hooks
+- `wwwroot/js/image-upload.js` owns upload requests, uploaded-image listing, and content normalization during save
+- `wwwroot/js/harness.js` owns buttons, status updates, draft restore/save, sample insertion, and the uploaded-images gallery
 
 This makes it easier to change TinyMCE behavior without touching the harness layout code, and easier to change image API behavior without digging through editor setup.
 
@@ -194,8 +194,8 @@ The side-panel gallery is populated from `GET /api/images`.
 
 The visible page styling and the editor content styling are separate on purpose:
 
-- [wwwroot/styles.css](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/styles.css:1) styles the harness page around TinyMCE
-- [wwwroot/editor-content.css](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/editor-content.css:1) styles content inside the TinyMCE iframe
+- `wwwroot/styles.css` styles the harness page around TinyMCE
+- `wwwroot/editor-content.css` styles content inside the TinyMCE iframe
 
 If a content block looks right on the page shell but not inside the editor, the editor stylesheet is the first place to check.
 
@@ -274,8 +274,8 @@ The launch profile is defined in [Properties/launchSettings.json]
 
 ## Notes for developers
 
-- The demo uses a self-hosted TinyMCE copy from [wwwroot/lib/tinymce](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/lib/tinymce:1) and loads it from [wwwroot/index.html](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/index.html:8)
+- The demo uses a self-hosted TinyMCE copy from `wwwroot/lib/tinymce` and loads it from `wwwroot/index.html`
 - The app deliberately does not expose the image folder as a static file directory
 - Image retrieval should stay behind the controller so auth, logging, transformations, or access checks can be added later in one place
 - Cloudflare Images upload uses the official account upload endpoint and retrieves bytes from an Images delivery URL built from `AccountHash`, image ID, and variant name
-- The front-end entry script is an ES module, so [wwwroot/index.html](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/index.html:90) loads [wwwroot/app.js](/Volumes/SourceCode/Code/Projects/ImageServer/wwwroot/app.js:1) with `type="module"`
+- The front-end entry script is an ES module, so `wwwroot/index.html` loads `wwwroot/app.js` with `type="module"`
