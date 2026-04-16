@@ -1,6 +1,34 @@
 # ImageServer
 
-Small ASP.NET Core image server with a TinyMCE-based HTML/JavaScript demo harness.
+Small ASP.NET Core image server and TinyMCE integration sample for handling editor image uploads, temporary draft images, and save-time URL normalization.
+
+## Description
+
+ImageServer is a modern .NET sample that shows how to accept image uploads through an application-owned API, store them locally or in Cloudflare Images, and integrate that flow into a TinyMCE-based HTML editor.
+
+## About
+
+This repository is designed for developers who need a practical image-handling workflow for rich text editors:
+
+- upload images through your own `POST /api/images` endpoint
+- serve stored images through your own `GET /api/images/{fileName}` endpoint
+- keep pasted, dragged, or selected editor images temporary until page save
+- normalize editor HTML before saving so content points at durable image URLs
+- reuse the front-end integration on other pages without copying the demo harness
+
+Suggested GitHub repository description:
+
+`ASP.NET Core image server and TinyMCE sample with save-time image normalization, local/Cloudflare storage, and reusable editor integration.`
+
+Suggested GitHub About / tags:
+
+- `aspnetcore`
+- `tinymce`
+- `image-upload`
+- `rich-text-editor`
+- `cloudflare-images`
+- `html-editor`
+- `content-management`
 
 ## What this project does
 
