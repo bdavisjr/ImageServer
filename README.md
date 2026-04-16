@@ -170,17 +170,27 @@ The harness JavaScript is intentionally split into a few small modules instead o
 
 This makes it easier to change TinyMCE behavior without touching the harness layout code, and easier to change image API behavior without digging through editor setup.
 
+The reusable image integration is intentionally generic. It handles temporary editor image sources like `data:` and `blob:` by default. Harness-specific rules, such as treating local demo assets under `/img/...` as save-time imports, are added by the harness when it creates the image integration.
+
 ### Draft and image lifecycle
 
-The harness intentionally treats paste and save differently:
+The harness keeps all editor-inserted images temporary until save:
 
-- Toolbar image uploads are uploaded immediately to `POST /api/images`
+- Toolbar-selected images are inserted into the editor as temporary image sources
 - Pasted `data:image/...` images are allowed to exist temporarily inside the editor while the user is drafting
-- Local sample images from `/img/...` are also allowed temporarily inside the editor
-- `Save draft` is the persistence boundary for pasted or local sample images
+- Drag/drop images are converted to temporary data URLs inside the editor
+- The harness also treats its local sample images from `/img/...` as temporary sources until save
+- `Save draft` is the persistence boundary for all temporary image sources
 - During save, the harness scans editor HTML, uploads any temporary images to the image server, rewrites those `src` values to `/api/images/...`, and then stores the normalized HTML in `localStorage`
 
-This helps avoid creating lots of stored images for abandoned drafts while still making paste behavior feel immediate in the editor.
+This avoids creating stored images for abandoned drafts while still making image insertion feel immediate in the editor.
+
+The TinyMCE integration also supports a configurable persistence mode:
+
+- `imagePersistenceMode: "on-save"` keeps inserted images temporary until `prepareEditorForSave(editor)` runs
+- `imagePersistenceMode: "immediate"` uploads toolbar-selected and drag/dropped images right away
+
+If the option is omitted, the default is `"on-save"`.
 
 ### Uploaded images gallery
 
@@ -218,11 +228,15 @@ import { initializeTinyMceEditor } from "/js/tinymce-config.js";
 const imageServerEditor = createImageServerEditor({
     onUploadComplete: (location) => {
         console.log("Image uploaded:", location);
+    },
+    shouldImportImageSource: (src) => {
+        return src.startsWith("/img/") || src.startsWith(`${window.location.origin}/img/`);
     }
 });
 
 initializeTinyMceEditor({
     imageServerEditor,
+    imagePersistenceMode: "on-save",
     onEditorReady: () => {},
     onEditorContentChange: () => {},
     onImageUploadStatusChange: () => {}
@@ -251,10 +265,12 @@ The main reusable save hook is:
 That method:
 
 - reads the current TinyMCE HTML
-- uploads temporary image sources such as `data:` images, drag/drop images, and local `/img/...` sample assets
+- uploads temporary image sources such as `data:` images and drag/drop images
 - rewrites those image `src` values to stored `/api/images/...` URLs
 - updates the TinyMCE editor content with the normalized HTML
 - returns the normalized HTML so the page can save it to the database
+
+If a page has its own local asset paths that should be imported during save, it can pass a `shouldImportImageSource(src)` callback to `createImageServerEditor(...)`.
 
 If a page does not want the editor instance updated in-place, it can call `imageServerEditor.normalizeEditorContent(html)` directly instead and manage the returned HTML itself.
 

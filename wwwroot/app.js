@@ -19,6 +19,9 @@ const elements = {
 const imageServerEditor = createImageServerEditor({
     onUploadComplete: (location) => {
         elements.lastUploadUrl.value = location;
+    },
+    shouldImportImageSource: (src) => {
+        return src.startsWith("/img/") || src.startsWith(`${window.location.origin}/img/`);
     }
 });
 

@@ -9,11 +9,36 @@ function readFileAsDataUrl(file) {
 
 export function initializeTinyMceEditor({
     imageServerEditor,
+    imagePersistenceMode = "on-save",
     onEditorReady,
     onEditorContentChange,
     onImageUploadStatusChange,
     onImageUploaded = () => {}
 }) {
+    async function insertImage(editor, file) {
+        if (imagePersistenceMode === "immediate") {
+            onImageUploadStatusChange("Uploading image...", "working");
+            const location = await imageServerEditor.uploadImage({
+                blob: () => file,
+                filename: () => file.name
+            }, () => {});
+            onImageUploadStatusChange("Upload complete", "success");
+            await onImageUploaded(location);
+            return {
+                source: location,
+                title: file.name
+            };
+        }
+
+        const dataUrl = await readFileAsDataUrl(file);
+        onImageUploadStatusChange("Image inserted", "idle");
+        await onImageUploaded(dataUrl);
+        return {
+            source: dataUrl,
+            title: file.name
+        };
+    }
+
     // Keep editor configuration isolated so the harness can focus on page behavior.
     tinymce.init({
         selector: "#editor",
@@ -32,7 +57,10 @@ export function initializeTinyMceEditor({
         autoresize_overflow_padding: 16,
         file_picker_types: "image",
         images_upload_handler: async (blobInfo, progress) => {
-            // Toolbar-driven image inserts are intentional, so they upload immediately.
+            if (imagePersistenceMode !== "immediate") {
+                return await readFileAsDataUrl(blobInfo.blob());
+            }
+
             onImageUploadStatusChange("Uploading image...", "working");
 
             try {
@@ -50,7 +78,7 @@ export function initializeTinyMceEditor({
                 return;
             }
 
-            // Use the same upload path whether the user picks a file or uses TinyMCE's upload handler.
+            // The page can choose whether picker-selected images stay temporary or upload right away.
             const input = document.createElement("input");
             input.type = "file";
             input.accept = "image/png,image/jpeg,image/gif,image/webp";
@@ -60,21 +88,12 @@ export function initializeTinyMceEditor({
                     return;
                 }
 
-                const blobInfo = {
-                    blob: () => file,
-                    filename: () => file.name
-                };
-
-                onImageUploadStatusChange("Uploading image...", "working");
-
                 try {
-                    const location = await imageServerEditor.uploadImage(blobInfo, () => {});
-                    onImageUploadStatusChange("Upload complete", "success");
-                    await onImageUploaded(location);
-                    callback(location, { title: file.name });
-                } catch (error) {
-                    onImageUploadStatusChange("Upload failed", "error");
-                    window.alert(typeof error === "string" ? error : "Image upload failed.");
+                    const image = await insertImage(tinymce.get("editor"), file);
+                    callback(image.source, { title: image.title });
+                } catch {
+                    onImageUploadStatusChange("Image insert failed", "error");
+                    window.alert("The selected image could not be added to the editor.");
                 }
             });
 
@@ -94,7 +113,7 @@ export function initializeTinyMceEditor({
                     return;
                 }
 
-                // Treat drag/drop like paste: show the image now, but defer server upload until save.
+                // Drag/drop follows the same persistence mode as the picker-selected image flow.
                 event.preventDefault();
                 event.stopPropagation();
 
@@ -102,9 +121,9 @@ export function initializeTinyMceEditor({
                     editor.focus();
 
                     for (const file of imageFiles) {
-                        const dataUrl = await readFileAsDataUrl(file);
                         const altText = file.name.replace(/"/g, "&quot;");
-                        editor.insertContent(`<p><img src="${dataUrl}" alt="${altText}"></p>`);
+                        const image = await insertImage(editor, file);
+                        editor.insertContent(`<p><img src="${image.source}" alt="${altText}"></p>`);
                     }
 
                     onEditorContentChange(editor);

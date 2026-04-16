@@ -15,7 +15,8 @@ function getImageExtension(contentType) {
 export function createImageServerEditor({
     onUploadComplete = () => {},
     uploadUrl = "/api/images",
-    listUrl = "/api/images"
+    listUrl = "/api/images",
+    shouldImportImageSource: customShouldImportImageSource = null
 }) {
     async function uploadImage(blobInfo, progress) {
         // TinyMCE hands us a blob-like wrapper; the API expects a normal multipart file field.
@@ -89,8 +90,9 @@ export function createImageServerEditor({
             return true;
         }
 
-        // Sample assets live under /img until the editor content is normalized and saved.
-        return src.startsWith("/img/") || src.startsWith(`${window.location.origin}/img/`);
+        return typeof customShouldImportImageSource === "function"
+            ? customShouldImportImageSource(src)
+            : false;
     }
 
     async function importImageSource(src, index) {
