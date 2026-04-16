@@ -258,6 +258,24 @@ async function savePage() {
 }
 ```
 
+If a page already has its own save pipeline and another function reads the editor later, it can ignore the return value and just normalize the editor in place first:
+
+```js
+async function beforePageSave() {
+    const editor = tinymce.get("editor");
+    await imageServerEditor.prepareEditorForSave(editor);
+}
+
+async function existingSavePage() {
+    await beforePageSave();
+
+    const editor = tinymce.get("editor");
+    const htmlToSave = editor.getContent();
+
+    await saveRecordToDatabase(htmlToSave);
+}
+```
+
 The main reusable save hook is:
 
 - `imageServerEditor.prepareEditorForSave(editor)`
@@ -268,7 +286,12 @@ That method:
 - uploads temporary image sources such as `data:` images and drag/drop images
 - rewrites those image `src` values to stored `/api/images/...` URLs
 - updates the TinyMCE editor content with the normalized HTML
-- returns the normalized HTML so the page can save it to the database
+- returns the normalized HTML so the page can save it immediately if that is convenient
+
+That means a page can either:
+
+- use the returned HTML directly in its save function
+- or ignore the return value and let the rest of its existing save pipeline read `editor.getContent()` afterward
 
 If a page has its own local asset paths that should be imported during save, it can pass a `shouldImportImageSource(src)` callback to `createImageServerEditor(...)`.
 
