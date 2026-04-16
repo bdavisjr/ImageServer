@@ -199,6 +199,65 @@ The visible page styling and the editor content styling are separate on purpose:
 
 If a content block looks right on the page shell but not inside the editor, the editor stylesheet is the first place to check.
 
+### Minimum integration
+
+If another page just wants TinyMCE image handling and save-time image normalization, it usually only needs:
+
+- `wwwroot/js/image-upload.js`
+- `wwwroot/js/tinymce-config.js`
+- a small page-specific script for that page's own save flow
+
+The harness module is only needed for demo-specific behaviors like sample content, copy test image, local draft persistence, and the uploaded-images gallery.
+
+Example page script:
+
+```js
+import { createImageServerEditor } from "/js/image-upload.js";
+import { initializeTinyMceEditor } from "/js/tinymce-config.js";
+
+const imageServerEditor = createImageServerEditor({
+    onUploadComplete: (location) => {
+        console.log("Image uploaded:", location);
+    }
+});
+
+initializeTinyMceEditor({
+    imageServerEditor,
+    onEditorReady: () => {},
+    onEditorContentChange: () => {},
+    onImageUploadStatusChange: () => {}
+});
+
+async function savePage() {
+    const editor = tinymce.get("editor");
+    const htmlToSave = await imageServerEditor.prepareEditorForSave(editor);
+
+    await fetch("/api/articles/save", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            html: htmlToSave
+        })
+    });
+}
+```
+
+The main reusable save hook is:
+
+- `imageServerEditor.prepareEditorForSave(editor)`
+
+That method:
+
+- reads the current TinyMCE HTML
+- uploads temporary image sources such as `data:` images, drag/drop images, and local `/img/...` sample assets
+- rewrites those image `src` values to stored `/api/images/...` URLs
+- updates the TinyMCE editor content with the normalized HTML
+- returns the normalized HTML so the page can save it to the database
+
+If a page does not want the editor instance updated in-place, it can call `imageServerEditor.normalizeEditorContent(html)` directly instead and manage the returned HTML itself.
+
 ## API
 
 ### `POST /api/images`

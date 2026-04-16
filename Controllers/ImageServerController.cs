@@ -19,7 +19,6 @@ public sealed class ImageServerController : ControllerBase
     }
 
     [HttpPost]
-    [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<ActionResult<ImageUploadResponse>> UploadAsync(IFormFile? file, CancellationToken cancellationToken)
     {
         if (file is null)
@@ -49,7 +48,8 @@ public sealed class ImageServerController : ControllerBase
         }
     }
 
-    [HttpGet("{fileName}")]
+    [HttpGet]
+    [Route("{fileName}")]
     public async Task<IActionResult> GetAsync(string fileName, CancellationToken cancellationToken)
     {
         // Images are served through the controller rather than exposing the storage folder directly.

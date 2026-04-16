@@ -7,11 +7,12 @@ function readFileAsDataUrl(file) {
     });
 }
 
-export function initializeTinyMce({
+export function initializeTinyMceEditor({
+    imageServerEditor,
     onEditorReady,
     onEditorContentChange,
     onImageUploadStatusChange,
-    uploadImage
+    onImageUploaded = () => {}
 }) {
     // Keep editor configuration isolated so the harness can focus on page behavior.
     tinymce.init({
@@ -35,8 +36,9 @@ export function initializeTinyMce({
             onImageUploadStatusChange("Uploading image...", "working");
 
             try {
-                const location = await uploadImage(blobInfo, progress);
+                const location = await imageServerEditor.uploadImage(blobInfo, progress);
                 onImageUploadStatusChange("Upload complete", "success");
+                await onImageUploaded(location);
                 return location;
             } catch (error) {
                 onImageUploadStatusChange("Upload failed", "error");
@@ -66,8 +68,9 @@ export function initializeTinyMce({
                 onImageUploadStatusChange("Uploading image...", "working");
 
                 try {
-                    const location = await uploadImage(blobInfo, () => {});
+                    const location = await imageServerEditor.uploadImage(blobInfo, () => {});
                     onImageUploadStatusChange("Upload complete", "success");
+                    await onImageUploaded(location);
                     callback(location, { title: file.name });
                 } catch (error) {
                     onImageUploadStatusChange("Upload failed", "error");

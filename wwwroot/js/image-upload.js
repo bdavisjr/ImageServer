@@ -12,7 +12,11 @@ function getImageExtension(contentType) {
     }
 }
 
-export function createImageUploadService({ onUploadComplete }) {
+export function createImageServerEditor({
+    onUploadComplete = () => {},
+    uploadUrl = "/api/images",
+    listUrl = "/api/images"
+}) {
     async function uploadImage(blobInfo, progress) {
         // TinyMCE hands us a blob-like wrapper; the API expects a normal multipart file field.
         const formData = new FormData();
@@ -21,7 +25,7 @@ export function createImageUploadService({ onUploadComplete }) {
         const xhr = new XMLHttpRequest();
 
         return await new Promise((resolve, reject) => {
-            xhr.open("POST", "/api/images");
+            xhr.open("POST", uploadUrl);
 
             xhr.upload.addEventListener("progress", (event) => {
                 if (!event.lengthComputable) {
@@ -120,9 +124,16 @@ export function createImageUploadService({ onUploadComplete }) {
         return documentFragment.body.innerHTML;
     }
 
+    async function prepareEditorForSave(editor) {
+        // Forms can call this right before saving to swap temporary image sources for stored URLs.
+        const normalizedContent = await normalizeEditorContent(editor.getContent());
+        editor.setContent(normalizedContent);
+        return normalizedContent;
+    }
+
     async function listImages() {
         // The harness gallery reads from the same API route that serves stored images.
-        const response = await fetch("/api/images");
+        const response = await fetch(listUrl);
         if (!response.ok) {
             throw new Error("Uploaded images could not be loaded.");
         }
@@ -134,6 +145,7 @@ export function createImageUploadService({ onUploadComplete }) {
     return {
         listImages,
         normalizeEditorContent,
+        prepareEditorForSave,
         uploadImage
     };
 }

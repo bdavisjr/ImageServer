@@ -30,7 +30,7 @@ function copyImageToClipboardFactory() {
     };
 }
 
-export function initializeHarness({ elements, imageUploadService, initializeTinyMce }) {
+export function initializeHarness({ elements, imageServerEditor, initializeTinyMceEditor }) {
     const copyImageToClipboard = copyImageToClipboardFactory();
 
     function setStatus(message, tone = "idle") {
@@ -88,7 +88,7 @@ export function initializeHarness({ elements, imageUploadService, initializeTiny
 
     async function loadUploadedImages() {
         try {
-            const images = await imageUploadService.listImages();
+            const images = await imageServerEditor.listImages();
             renderGallery(images);
         } catch {
             renderEmptyGallery("Uploaded images could not be loaded.");
@@ -116,8 +116,7 @@ export function initializeHarness({ elements, imageUploadService, initializeTiny
         setStatus("Saving draft...", "working");
 
         // Replace pasted/base64 and local sample images with stored server URLs before saving.
-        const normalizedContent = await imageUploadService.normalizeEditorContent(editor.getContent());
-        editor.setContent(normalizedContent);
+        const normalizedContent = await imageServerEditor.prepareEditorForSave(editor);
         window.localStorage.setItem(savedDraftStorageKey, normalizedContent);
         syncHtmlOutput(editor);
         setStatus("Draft saved", "success");
@@ -197,7 +196,8 @@ export function initializeHarness({ elements, imageUploadService, initializeTiny
         syncHeaderImage();
         void loadUploadedImages();
 
-        initializeTinyMce({
+        initializeTinyMceEditor({
+            imageServerEditor,
             onEditorReady: (editor) => {
                 const restored = restoreDraft(editor);
                 if (!restored) {
@@ -207,17 +207,16 @@ export function initializeHarness({ elements, imageUploadService, initializeTiny
             },
             onEditorContentChange: syncHtmlOutput,
             onImageUploadStatusChange: setStatus,
-            uploadImage: async (blobInfo, progress) => {
+            onImageUploaded: async () => {
                 // Refresh the gallery after explicit uploads so the harness reflects stored state right away.
-                const location = await imageUploadService.uploadImage(blobInfo, progress);
                 syncHeaderImage();
                 await loadUploadedImages();
-                return location;
             }
         });
     }
 
     return {
+        saveDraft,
         start
     };
 }
